@@ -1,73 +1,37 @@
 import numpy as np
 
-
-def design_matrix(x, period, n_harmonics):
-
-    # We're going to do this as a fourier series, so our design matrix
-    # necessarily needs to be the (1 cos() sin()) pairs for each
-    # harmonic of the orbital period that we're considering
-
-    # First, we're going to get all the possible cyclic frequencies
-    # that we're concerned with, i.e. the N harmonics of the orbital
-    # frequency
-    omegas = 2. * np.pi * np.arange(1, n_harmonics + 1) / period
-
-    # Next, we instantiate the design matrix to have 2 * n_harmonics + 1 columns
-    # since we want an offset term and sin+cos term for each harmonic
-    X = np.ones((len(x), 2 * n_harmonics + 1))
-
-    # We do the same to keep track of the actual frequencies in case we
-    # want to do the approximate GP regression
-    omega_list = np.zeros(2 * n_harmonics + 1)
+np.random.seed(18443280306) # The General Insurance phone number to enforce reproducibility
+RCOND = 1e-14 # condition number below which `np.linalg.lstsq()` zeros out eigen/singular values
 
 
-    # Consider the 0-frequency base term
-    #X[:,0] = 1.
-    omega_list[0] = 0.
 
-    # Populate the cosine terms
-    X[:,1::2] = np.cos(omegas[None, :] * x[:, None]) # I'm dyin heah ## original hogg quote, will not be removing.
-    omega_list[1::2] = omegas
+def solve_ridgeRegression(X, y, alpha, weights=None):
 
-    # Populate the cosine terms
-    X[:,2::2] = np.sin(omegas[None, :] * x[:, None])
-    omega_list[2::2] = omegas
+    if weights is None:
+        weights = np.ones(X.shape[0])
 
-    return X, omega_list
-
-
-def solve_ridgeRegression(x, y, period, K, alpha, weighted=False, weights=None):
-    X,_ = design_matrix(x, period, K)
-#     wI = np.eye(X.shape[1])
-#     wI[0,0] = 0
-#     betas = np.linalg.solve( alpha*wI + X.T@X, X.T @ y)
-
-    if weighted:
-        Cinv = np.linalg.inv(np.diag(weights))
-        A = X.T@Cinv@X
-        B = X.T@Cinv@y
-    else:
-        A = X.T@X
-        B = X.T@y
+    XTCinv = X.T / weights
+    XTCinvX = XTCinv @ X
+    XTCinvY = XTCinv @ y
         
-    idd = np.diag_indices_from(A)
-    A[idd] += alpha
+    idd = np.diag_indices_from(XTCinvX)
+    XTCinvX[idd] += alpha
     
-    betas = np.linalg.solve(A, B)
+    betas = np.linalg.solve(XTCinvX, XTCinvY)
     return betas
 
 
-def solve_approxGP(x, y, period, K, alpha, width=None, weighted=False, weights=None):
+def solve_fwols(X, omegas, y, width=None, weighted=False, weights=None):
+
+    n, p = X.shape
 
     if width is None:
-        width = 0.1*period / (2.*np.pi)
+        width = 0.1 / (2.*np.pi)
     else:
         width /= (2. * np.pi)
 
     
     ## Assumes the approximation of a periodic version of the Matern 3/2 kernal
-    X,diag_omegas = design_matrix(x, period, K)
-    
     # Implement eq. 23 from https://arxiv.org/pdf/2101.07256
     # In this case, we're going to use the same X for our predictions
     # however, we could propose a new X* where we want to predict
@@ -81,34 +45,112 @@ def solve_approxGP(x, y, period, K, alpha, width=None, weighted=False, weights=N
         B = X.T@y
     
     idd = np.diag_indices_from(A)
-    A[idd] += alpha * ( (width**2) * (diag_omegas**2) + 1 )
+    A[idd] += ( (width**2) * (omegas**2) + 1 )
     betas = np.linalg.solve( A, B)
     return betas
 
-def solve_simple(x, y, period, K, weighted=False, weights=None):
 
-    X,_ = design_matrix(x, period, K)
-    betas = np.linalg.solve(X.T @ X, X.T @ y)
-    # amps, resids, rank, S = np.linalg.lstsq(X, flux, rcond=None)
+def solve_wls(xs, ys, ws=None):
+    n, p = xs.shape
+    if ws is None:
+        ws = np.ones(n)
+    return np.linalg.lstsq(ws[:, None] * xs , ws * ys, rcond=RCOND)[0].T
+
+def solve_ols(X, y, weights=None):
+
+    if weights is not None:
+        Cinv = np.linalg.inv(np.diag(weights))
+        betas = np.linalg.solve(X.T@Cinv@X, X.T@Cinv@y)
+    else:
+        betas = np.linalg.solve(X.T @ X, X.T @ y)
 
     return betas
 
 
-def predict_simple(x, y, period, K):
-    X,_ = design_matrix(x, period, K)
-    betas = solve_simple(x, y, period, K)
-    reconstructed_y = X @ betas
-    return X, betas, reconstructed_y
 
 
-def predict_ridge(x, y, period, K, alpha=1):
-    X,_ = design_matrix(x, period, K)
-    betas = solve_ridgeRegression(x, y, period, K, alpha)
-    reconstructed_y = X @ betas
-    return X, betas, reconstructed_y
+def train_feature_weighted_ols(xs, ys, ws=None):
+    n, p = xs.shape
+    if ws is None:
+        ws = np.ones(p)
+    return np.linalg.lstsq(xs * ws[None, :], ys, rcond=RCOND)[0].T * ws
 
-def predict_approxGP(x, y, period, K, alpha=1, width=None):
-    X,_ = design_matrix(x, period, K)
-    betas = solve_ridgeRegression(x, y, period, K, alpha, width)
-    reconstructed_y = X @ betas
-    return X, betas, reconstructed_y
+
+
+# def solve_ridgeRegression(x, y, period, K, alpha, weighted=False, weights=None):
+#     X,_ = design_matrix(x, period, K)
+# #     wI = np.eye(X.shape[1])
+# #     wI[0,0] = 0
+# #     betas = np.linalg.solve( alpha*wI + X.T@X, X.T @ y)
+
+#     if weighted:
+#         Cinv = np.linalg.inv(np.diag(weights))
+#         A = X.T@Cinv@X
+#         B = X.T@Cinv@y
+#     else:
+#         A = X.T@X
+#         B = X.T@y
+        
+#     idd = np.diag_indices_from(A)
+#     A[idd] += alpha
+    
+#     betas = np.linalg.solve(A, B)
+#     return betas
+
+
+# def solve_approxGP(x, y, period, K, alpha, width=None, weighted=False, weights=None):
+
+#     if width is None:
+#         width = 0.1*period / (2.*np.pi)
+#     else:
+#         width /= (2. * np.pi)
+
+    
+#     ## Assumes the approximation of a periodic version of the Matern 3/2 kernal
+#     X,diag_omegas = design_matrix(x, period, K)
+    
+#     # Implement eq. 23 from https://arxiv.org/pdf/2101.07256
+#     # In this case, we're going to use the same X for our predictions
+#     # however, we could propose a new X* where we want to predict
+#     # the regression at times t*
+#     if weighted:
+#         Cinv = np.linalg.inv(np.diag(weights))
+#         A = X.T@Cinv@X
+#         B = X.T@Cinv@y
+#     else:
+#         A = X.T@X
+#         B = X.T@y
+    
+#     idd = np.diag_indices_from(A)
+#     A[idd] += alpha * ( (width**2) * (diag_omegas**2) + 1 )
+#     betas = np.linalg.solve( A, B)
+#     return betas
+
+# def solve_simple(x, y, period, K, weighted=False, weights=None):
+
+#     X,_ = design_matrix(x, period, K)
+#     betas = np.linalg.solve(X.T @ X, X.T @ y)
+#     # amps, resids, rank, S = np.linalg.lstsq(X, flux, rcond=None)
+
+#     return betas
+
+
+# def predict_simple(x, y, period, K):
+#     X,_ = design_matrix(x, period, K)
+#     betas = solve_simple(x, y, period, K)
+#     reconstructed_y = X @ betas
+#     return X, betas, reconstructed_y
+
+
+# def predict_ridge(x, y, period, K, alpha=1):
+#     X,_ = design_matrix(x, period, K)
+#     betas = solve_ridgeRegression(x, y, period, K, alpha)
+#     reconstructed_y = X @ betas
+#     return X, betas, reconstructed_y
+
+
+# def predict_approxGP(x, y, period, K, alpha=1, width=None):
+#     X,_ = design_matrix(x, period, K)
+#     betas = solve_ridgeRegression(x, y, period, K, alpha, width)
+#     reconstructed_y = X @ betas
+#     return X, betas, reconstructed_y
