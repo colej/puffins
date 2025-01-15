@@ -1,11 +1,11 @@
 # puffins
-A module for modelling strictly periodic signals in time series, based on [Hogg & Villar, 2021](https://arxiv.org/abs/2101.07256)
+A module for modelling strictly periodic signals in time series, based on [Hogg & Villar, 2021](https://arxiv.org/abs/2101.07256). Most of the linear algebra that is presented here for the regression work is expanded upon in the above text, so we refer the reader there.
 
 
 ### Authors
 C. Johnston - Royal Society | University of Surrey / KU Leuven / Max Planck Institute for Astrophysics
 D.W. Hogg - New York University / Center for Computational Astrophysics | Flatiron Institute / Max Planck Institute for Astronomy
-N.L. Eisner - Tatari Inc.
+N.L. Eisner - Tatari Inc. / Center for Computational Astrophysics | Flatiron Institute / Princeton University
 
 
 ## Intro
@@ -19,7 +19,7 @@ Developing this package was motivated by modelling the signatures of eclipsing b
 
 
 ## Mathematical overview
-We are using a linear regression to model our signals of interest for a time series of N observations y~i; i$\in$(0...N-1) with e~i associated uncertainties, taken at t~i times. The typical formulation of the regression problem to y is given by:  __Y__ = __X__ __&beta;__, where __X__ is our N x p design matrix, with N predictors and p features, __&beta;__ is the p x 1 coefficient matrix, and __Y__ is the Nx1 target matrix.
+We are using a linear regression to model our signals of interest for a time series of N observations $y_i$; $i\in (0...N-1)$ with $e_i$ associated uncertainties, taken at $t_i$ times. The typical formulation of the regression problem to y is given by:  __Y__ = __X__ __&beta;__, where __X__ is our N x p design matrix, with N predictors and p features, __&beta;__ is the p x 1 coefficient matrix, and __Y__ is the Nx1 target matrix.
 
 Because we know that we're modelling strictly periodic signals, we will embed our features in a Fourier space - thus, our design matrix is no longer N x p, but N x 2K + 1, where K is the number of harmonics used in our harmonic series to model the signal.
 
@@ -29,8 +29,10 @@ Given the disparity of types of astronomical data, we will be dealing with regim
 since the matrix $\left( \mathbf{X}^T \mathbf{X} \right)$ isn't invertable when p >> N.
  
 In some situations, we will want to include weights for each data point in the form of inverse square uncertainties, contained in the diagonal matrix __C__. This will lead to:
- - $\mathbf{\hat{\beta}} = \left( \mathbf{X}^T \mathbf{X} \right)^{-1} \mathbf{X}^T \mathbf{Y}$
- - $\mathbf{\hat{\beta}} = \left( \mathbf{X}^T \mathbf{X} \right)^{-1} \mathbf{X}^T \mathbf{Y}$
+ - $\mathbf{\hat{\beta}} = \left( \mathbf{X}^T \mathbf{C}^{-1} \mathbf{X} \right)^{-1} \mathbf{X}^T \mathbf{C}^{-1} \mathbf{Y}$
+ - $\mathbf{\hat{\beta}} = \left( \mathbf{X}^T \mathbf{C}^{-1} \mathbf{X} \right)^{+} \mathbf{X}^T \mathbf{C}^{-1} \mathbf{Y}$
+
+ Where $^+$ denotes the pseudo inverse.
 
 ## Latent space modelling
 
