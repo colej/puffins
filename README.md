@@ -3,9 +3,9 @@ A module for modelling strictly periodic signals in time series, based on [Hogg 
 
 
 ### Authors
-C. Johnston - Royal Society | University of Surrey / KU Leuven / Max Planck Institute for Astrophysics
-D.W. Hogg - New York University / Center for Computational Astrophysics | Flatiron Institute / Max Planck Institute for Astronomy
-N.L. Eisner - Tatari Inc. / Center for Computational Astrophysics | Flatiron Institute / Princeton University
+ - C. Johnston: Royal Society | University of Surrey / KU Leuven / Max Planck Institute for Astrophysics
+ - D.W. Hogg: New York University / Center for Computational Astrophysics | Flatiron Institute / Max Planck Institute for Astronomy
+ - N.L. Eisner: Tatari Inc. / Center for Computational Astrophysics | Flatiron Institute / Princeton University
 
 
 ## Intro
