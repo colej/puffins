@@ -170,7 +170,7 @@ def solve(X, y, method="wls", **kwargs):
     solvers = {
         "wls": solve_wls,
         "ridge": solve_generalRidge,
-        "fwols": solve_fw,
+        "fw": solve_fw,
     }
 
     if method not in solvers:
