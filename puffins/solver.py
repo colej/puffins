@@ -1,6 +1,6 @@
 import numpy as np
 
-np.random.seed(18443280306) # The General Insurance phone number to enforce reproducibility
+np.random.seed(1234567) # The General Insurance phone number to enforce reproducibility
 RCOND = 1e-14 # condition number below which `np.linalg.lstsq()` zeros out eigen/singular values
 
 
@@ -87,7 +87,7 @@ def solve_generalRidge(X, y, alpha, W=None):
     return np.linalg.lstsq(XTWX, XTW @ y, rcond=RCOND)[0]
 
 
-def solve_fwols(X, y, FW, W=None):
+def solve_fwols(X, y, L=None, W=None):
 
     '''
     Feature weighted least squares solver.
@@ -143,7 +143,7 @@ def solve_fwols(X, y, FW, W=None):
         XTWX[np.diag_indices_from(XTWX)] += L
         return np.linalg.lstsq(XTWX, XTW @ y, rcond=RCOND)[0]
 
-    else: # underdetermined
+    else: #  underdetermined
         # beta_hat = L^-1 @ X.T (X @ L^-1 @ X.T + 1/W)^-1 y
 
         LinvXT = (X / Lambdadiag).T
