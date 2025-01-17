@@ -87,7 +87,7 @@ def solve_generalRidge(X, y, alpha, W=None):
     return np.linalg.lstsq(XTWX, XTW @ y, rcond=RCOND)[0]
 
 
-def solve_fwols(X, y, L=None, W=None):
+def solve_fw(X, y, L=None, W=None):
 
     '''
     Feature weighted least squares solver.
@@ -146,7 +146,7 @@ def solve_fwols(X, y, L=None, W=None):
     else: #  underdetermined
         # beta_hat = L^-1 @ X.T (X @ L^-1 @ X.T + 1/W)^-1 y
 
-        LinvXT = (X / Lambdadiag).T
+        LinvXT = (X / L).T
         XLinvXT = X @ LinvXT
         XLinvXT[np.diag_indices(n)] += 1./W
         return LinvXT @ np.linalg.lstsq(XLinvXT, y, rcond=RCOND)[0]
@@ -170,7 +170,7 @@ def solve(X, y, method="wls", **kwargs):
     solvers = {
         "wls": solve_wls,
         "ridge": solve_generalRidge,
-        "fwols": solve_fwols,
+        "fwols": solve_fw,
     }
 
     if method not in solvers:
