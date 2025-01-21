@@ -134,6 +134,7 @@ def solve_fw(X, y, L=None, W=None):
     # the regression at times t*
 
     if n > p: # Overdetermined
+        # Use eq. 23 from https://arxiv.org/pdf/2101.07256
         # beta_hat = (X.T * W * X + L)^-1 * X.T * W * y 
         # Identical to the generalized ridge regression! 
         # We just use special weights to approximate a Gaussian Process regression
@@ -144,6 +145,7 @@ def solve_fw(X, y, L=None, W=None):
         return np.linalg.lstsq(XTWX, XTW @ y, rcond=RCOND)[0]
 
     else: #  underdetermined
+        # Use eq. 24 from https://arxiv.org/pdf/2101.07256
         # beta_hat = L^-1 @ X.T (X @ L^-1 @ X.T + 1/W)^-1 y
 
         LinvXT = (X / L).T
