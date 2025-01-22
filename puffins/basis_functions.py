@@ -20,7 +20,7 @@ def basis_cosine(x, omega):
     return np.cos(omega[None,:] * x[:,None])
 
 
-def basis_sin(x, omega):
+def basis_sine(x, omega):
     return np.sin(omega[None,:] * x[:,None])
 
 
