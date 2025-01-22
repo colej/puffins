@@ -1,3 +1,4 @@
+import inspect
 import numpy as np
 
 from sklearn.model_selection import KFold
@@ -7,7 +8,7 @@ from .utils import construct_design_matrix
 
 
 class TimeSeries:
-    def __init__(self, x, y, epsilon=None, period = None):
+    def __init__(self, x, y, epsilon=None):
         """
         Initialize the time series object.
 
@@ -22,12 +23,15 @@ class TimeSeries:
         self.x = x
         self.y = y
         self.epsilon = epsilon
-        self.period = period
+        self.ph = None
         self.models = {}
         self.residuals = {}
         self.summary = None
         self._compute_summary()
 
+
+    def compute_phase(self, period, t0=0):
+        self.ph = ((self.x - t0) / period) % 1
 
     def _compute_summary(self):
         """Compute summary statistics for the time series."""
@@ -45,9 +49,14 @@ class TimeSeries:
         summary_str = "\n".join([f"{stat}: {val}" for stat, val in self.summary.items()])
         return f"TimeSeries with properties:\n{summary_str}"
 
+    def add_model(self, model):
+        self.models[model.method] = model
+        self.residuals[model.method] = self.y - model.predict(self.x)
+        self._compute_summary()
 
 
-class Model:
+
+class LinearModel:
     def __init__(self, time_series, method='wls', basis_functions=None, feature_embedding=None, **kwargs):
         """
         Initialize the model object.
@@ -62,18 +71,43 @@ class Model:
         self.method = method
         self.basis_functions = basis_functions
         self.feature_embedding = feature_embedding
-        self.kwargs = kwargs
         self.feature_weights = None
-        self.design_matrix = None
+        self.X_train = None
         self.coefficients = None
+        self.trained_model = None
+        self.summary = None
+        self._compute_summary()
 
-    def call_design_matrix(self, train=True, **kwargs):
-        if train:
-            self.design_matrix = construct_design_matrix(self.time_series.x, self.basis_functions, self.feature_embedding, **self.kwargs)
-        else:
-            return construct_design_matrix(kwargs(), self.basis_functions, self.feature_embedding, **self.kwargs)
+        # Extract keyword arguments for construct_design_matrix
+        X_list = list(inspect.signature(construct_design_matrix).parameters)
+        self.X_kwargs = {key: kwargs[key] for key in X_list if key in kwargs}
+
+        # Extract keyword arguments for solve
+        LS_list = list(inspect.signature(solve).parameters)
+        self.LS_kwargs = {key: kwargs[key] for key in LS_list if key in kwargs}
+
+
+
+    def _compute_summary(self):
+        """Compute summary statistics for the time series."""
+        summary = {
+            "Basis functions": [f"{inspect.getsource(bf)}" for bf in self.basis_functions],
+            "Feature embedding": len(self.feature_embedding),
+            "Regression method": self.method,
+                  }
+        self.summary = summary
+
+
+    def __repr__(self) -> str:
+        summary_str = "\n".join([f"{stat}: {val}" for stat, val in self.summary.items() ])
+        return f"Linear Model with properties: \n {summary_str}"
+
+
+    def set_X_train(self):
+            self.X_train, self.feature_weights = construct_design_matrix(self.time_series.x, self.basis_functions, self.feature_embedding, **self.X_kwargs)
     
-    def train(self, method="wls"):
+
+    def train(self):
         """
         Fit the model to the time series data.
 
@@ -81,17 +115,18 @@ class Model:
         - method: str, optional
             Method to use for fitting (default: "least_squares").
         """
-        from solver import solve
 
-        y = self.time_series.observations
-        W = np.diag(1 / self.time_series.uncertainties**2)  # Weight matrix
-
-        if self.design_matrix is None:
+        if self.X_train is None:
             raise ValueError("Design matrix has not been constructed. Call construct_design_matrix first.")
 
-        self.coefficients = solve(self.design_matrix, self.time_series, W)
+        W = kwargs.get('W', None)
+        L = kwargs.get('L', None)
+        alpha = kwargs.get('alpha', None)
+        self.coefficients = solve(self.X_train, self.time_series.y, method=self.method, **self.LS_kwargs)
+        self.trained_model = self.X_train @ self.coefficients
 
-    def predict(self, xnew):
+
+    def predict(self, xpredict):
         """
         Predict values at new time points.
 
@@ -103,8 +138,12 @@ class Model:
         - predictions: np.ndarray
             Predicted values.
         """
-        new_design_matrix = np.column_stack([basis(times) for basis in self.basis_functions])
-        return new_design_matrix @ self.coefficients
+
+        X_predict, _ = construct_design_matrix(xpredict, self.basis_functions, self.feature_embedding, **self.kwargs)
+
+        return X_predict, X_predict @ self.coefficients
+
+
 
     # def cross_validate(self, n_splits=5):
     #     """
