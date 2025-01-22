@@ -7,7 +7,7 @@ from .utils import construct_design_matrix
 
 
 class TimeSeries:
-    def __init__(self, x, y, epsilon=None):
+    def __init__(self, x, y, epsilon=None, period = None):
         """
         Initialize the time series object.
 
@@ -22,6 +22,7 @@ class TimeSeries:
         self.x = x
         self.y = y
         self.epsilon = epsilon
+        self.period = period
         self.summary = self._compute_summary()
         self.models = {}
         self.residuals = {}
@@ -29,9 +30,9 @@ class TimeSeries:
     def _compute_summary(self):
         """Compute summary statistics for the time series."""
         summary = {
-            "Time base of observations": self.times.max() - self.times.min(),
-            "Number of data points": len(self.times),
-            "Median time step": np.median(np.diff(np.sort(self.times))),
+            "Time base of observations": self.x.max() - self.x.min(),
+            "Number of data points": len(self.x),
+            "Median time step": np.median(np.diff(np.sort(self.x))),
             "Number of models computed": len(self.models),
                   }
 
