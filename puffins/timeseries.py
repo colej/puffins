@@ -23,9 +23,11 @@ class TimeSeries:
         self.y = y
         self.epsilon = epsilon
         self.period = period
-        self.summary = self._compute_summary()
         self.models = {}
         self.residuals = {}
+        self.summary = None
+        self._compute_summary()
+
 
     def _compute_summary(self):
         """Compute summary statistics for the time series."""
@@ -35,8 +37,8 @@ class TimeSeries:
             "Median time step": np.median(np.diff(np.sort(self.x))),
             "Number of models computed": len(self.models),
                   }
-
-        return summary
+        self.summary = summary
+        
 
     def __repr__(self):
         """String representation for debugging."""
