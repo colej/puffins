@@ -46,9 +46,9 @@ def construct_design_matrix(x, basis_functions=None, feature_embedding=None, **k
     if basis_functions is not None:
         for i,basis in enumerate(basis_functions):
             if basis == basis_polynomial:
-                design_matrix[i,:] = basis(x, kwargs.get("degree", 1))
+                design_matrix[:,i] = basis(x, kwargs.get("degree", 1))
             else:
-                design_matrix[i,:] = basis(x)
+                design_matrix[:,i] = basis(x)
 
     # Include feature embedding if specified
     if feature_embedding:
