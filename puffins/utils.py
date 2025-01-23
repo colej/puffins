@@ -3,7 +3,8 @@ import numpy as np
 from .basis_functions import *
 
 
-def construct_design_matrix(x, basis_functions=None, feature_embedding=None, **kwargs):
+def construct_design_matrix(x, basis_functions=None, feature_embedding=None, 
+                            period=None, n_harmonics=1, polynomial_degree=None, **kwargs):
     """
     Generate a design matrix based on provided basis functions and/or feature embeddings.
 
@@ -32,9 +33,13 @@ def construct_design_matrix(x, basis_functions=None, feature_embedding=None, **k
         n_bases = 0
     if feature_embedding:
         if feature_embedding == 'fourier':
-            n_embeddings = 2 * kwargs.get('n_harmonics', 1)
+            if n_harmonics is None:
+                raise ValueError("Fourier feature embedding requires n_harmonics.")
+            n_embeddings = 2 * n_harmonics
         elif feature_embedding == 'spherical_harmonics':
-            n_embeddings = kwargs.get('n_harmonics', 1)
+            if n_harmonics is None:
+                raise ValueError("Spherical harmonics feature embedding requires n_harmonics.")
+            n_embeddings = n_harmonics
     else:
         n_embeddings = 0
   
@@ -46,15 +51,20 @@ def construct_design_matrix(x, basis_functions=None, feature_embedding=None, **k
     if basis_functions is not None:
         for i,basis in enumerate(basis_functions):
             if basis == basis_polynomial:
-                design_matrix[:,i] = basis(x, kwargs.get("degree", 1))
+                if polynomial_degree is None:
+                    raise ValueError("Polynomial basis function requires a degree.")
+                design_matrix[:,i] = basis(x, polynomial_degree)
             else:
                 design_matrix[:,i] = basis(x)
 
     # Include feature embedding if specified
     if feature_embedding:
         if feature_embedding == "fourier":
-            period = kwargs.get("period", 1.0)
-            n_harmonics = kwargs.get("n_harmonics", 1)
+            if period is None:
+                raise ValueError("Fourier feature embedding requires a period.")
+            if n_harmonics is None:
+                raise ValueError("Fourier feature embedding requires n_harmonics.")
+
             omegas = 2. * np.pi * np.arange(1, n_harmonics + 1) / period
 
             design_matrix[:,n_bases::2] = basis_cosine(x,omegas)

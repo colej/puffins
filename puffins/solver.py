@@ -1,3 +1,4 @@
+import inspect
 import numpy as np
 
 np.random.seed(1234567) # The General Insurance phone number to enforce reproducibility
@@ -34,6 +35,8 @@ def solve_wls(X, y, W=None):
 
     n, p = X.shape
 
+    # W = kwargs.get('W', None)
+
     if W is None:
         W = np.ones(n)
     
@@ -48,7 +51,7 @@ def solve_wls(X, y, W=None):
 
 
 
-def solve_generalRidge(X, y, alpha, W=None):
+def solve_generalRidge(X, y, alpha=0., W=None):
     '''
     Generalized least squares solver.
     -------------------------------
@@ -77,6 +80,9 @@ def solve_generalRidge(X, y, alpha, W=None):
 
     n, p = X.shape
 
+    # alpha = kwargs.get('alpha', 1)
+    # W = kwargs.get('W', None)
+
     if W is None:
         W = np.ones(n)
     
@@ -87,7 +93,7 @@ def solve_generalRidge(X, y, alpha, W=None):
     return np.linalg.lstsq(XTWX, XTW @ y, rcond=RCOND)[0]
 
 
-def solve_fw(X, y, L=None, W=None):
+def solve_fw(X, y, W=None, L=None):
 
     '''
     Feature weighted least squares solver.
@@ -120,6 +126,10 @@ def solve_fw(X, y, L=None, W=None):
     '''
 
     n, p = X.shape
+
+    # W = kwargs.get('W', None)
+    # L = kwargs.get('L', None)
+
 
     if W is None:
         weights = np.ones(n)
@@ -154,7 +164,15 @@ def solve_fw(X, y, L=None, W=None):
         return LinvXT @ np.linalg.lstsq(XLinvXT, y, rcond=RCOND)[0]
 
 
-
+def get_solvers(method):
+    methods = {
+        "wls": solve_wls,
+        "ridge": solve_generalRidge,
+        "fw": solve_fw,
+    }
+    if method not in methods:
+        raise ValueError(f"Unknown method '{method}'. Supported methods: {list(methods.keys())}")
+    return methods[method]
 
 def solve(X, y, method="wls", **kwargs):
     """
@@ -178,7 +196,11 @@ def solve(X, y, method="wls", **kwargs):
     if method not in solvers:
         raise ValueError(f"Unknown method '{method}'. Supported methods: {list(solvers.keys())}")
 
-    return solvers[method](X, y, **kwargs)
+    solver = solvers[method]
+    signature = list(inspect.signature(solver).parameters)
+    solver_kwargs = {key: kwargs[key] for key in kwargs if key in signature}
+
+    return solver(X, y, **solver_kwargs)
 
 
 

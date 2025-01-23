@@ -2,7 +2,7 @@ import inspect
 import numpy as np
 
 from sklearn.model_selection import KFold
-from .solver import solve
+from .solver import solve, get_solvers
 from .basis_functions import basis_constant, basis_linear, basis_quadratic
 from .utils import construct_design_matrix
 
@@ -51,13 +51,14 @@ class TimeSeries:
 
     def add_model(self, model):
         self.models[model.method] = model
-        self.residuals[model.method] = self.y - model.predict(self.x)
+        self.residuals[model.method] = self.y - model.predict(self.x)[1]
         self._compute_summary()
 
 
 
 class LinearModel:
-    def __init__(self, time_series, method='wls', basis_functions=None, feature_embedding=None, **kwargs):
+    def __init__(self, time_series, method='wls', basis_functions=None, feature_embedding=None, 
+                 feature_weighting_function=None, feature_width=None, **kwargs):
         """
         Initialize the model object.
 
@@ -72,20 +73,24 @@ class LinearModel:
         self.basis_functions = basis_functions
         self.feature_embedding = feature_embedding
         self.feature_weights = None
+        self.feature_weighting_function = feature_weighting_function
+        self.feature_weighting_width = feature_width
         self.X_train = None
         self.coefficients = None
         self.trained_model = None
         self.summary = None
-        self._compute_summary()
+        self.solver = get_solvers(self.method)
 
         # Extract keyword arguments for construct_design_matrix
         X_list = list(inspect.signature(construct_design_matrix).parameters)
         self.X_kwargs = {key: kwargs[key] for key in X_list if key in kwargs}
 
-        # Extract keyword arguments for solve
-        LS_list = list(inspect.signature(solve).parameters)
-        self.LS_kwargs = {key: kwargs[key] for key in LS_list if key in kwargs}
+        # # Extract keyword arguments for solve
+        solver_list = list(inspect.signature(self.solver).parameters)
+        self.solver_kwargs = {key: kwargs[key] for key in solver_list if key in kwargs}
+        # self.kwargs = kwargs
 
+        self._compute_summary()
 
 
     def _compute_summary(self):
@@ -94,6 +99,8 @@ class LinearModel:
             "Basis functions": [f"{inspect.getsource(bf)}" for bf in self.basis_functions],
             "Feature embedding": len(self.feature_embedding),
             "Regression method": self.method,
+            "Regression kwargs": self.solver_kwargs,
+            "Design matrix kwargs": self.X_kwargs
                   }
         self.summary = summary
 
@@ -104,8 +111,12 @@ class LinearModel:
 
 
     def set_X_train(self):
-            self.X_train, self.feature_weights = construct_design_matrix(self.time_series.x, self.basis_functions, self.feature_embedding, **self.X_kwargs)
-    
+            self.X_train, weighting_input = construct_design_matrix(x=self.time_series.x, basis_functions=self.basis_functions, feature_embedding=self.feature_embedding, **self.X_kwargs)
+            if self.feature_weighting_function:
+                self.feature_weights = self.feature_weighting_function(weighting_input, self.feature_weighting_width)
+                self.solver_kwargs['L'] = self.feature_weights
+            else:
+                self.feature_weights = None
 
     def train(self):
         """
@@ -119,10 +130,8 @@ class LinearModel:
         if self.X_train is None:
             raise ValueError("Design matrix has not been constructed. Call construct_design_matrix first.")
 
-        W = kwargs.get('W', None)
-        L = kwargs.get('L', None)
-        alpha = kwargs.get('alpha', None)
-        self.coefficients = solve(self.X_train, self.time_series.y, method=self.method, **self.LS_kwargs)
+
+        self.coefficients = self.solver(self.X_train, self.time_series.y, **self.solver_kwargs)
         self.trained_model = self.X_train @ self.coefficients
 
 
@@ -139,7 +148,7 @@ class LinearModel:
             Predicted values.
         """
 
-        X_predict, _ = construct_design_matrix(xpredict, self.basis_functions, self.feature_embedding, **self.kwargs)
+        X_predict, _ = construct_design_matrix(xpredict, self.basis_functions, self.feature_embedding, **self.X_kwargs)
 
         return X_predict, X_predict @ self.coefficients
 
