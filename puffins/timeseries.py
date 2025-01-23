@@ -25,6 +25,7 @@ class TimeSeries:
         self.epsilon = epsilon
         self.ph = None
         self.models = {}
+        self.trained_models = {}
         self.residuals = {}
         self.summary = None
         self._compute_summary()
@@ -51,7 +52,8 @@ class TimeSeries:
 
     def add_model(self, model):
         self.models[model.method] = model
-        self.residuals[model.method] = self.y - model.predict(self.x)[1]
+        self.trained_models[model.method] = model.predict(self.x)[1]
+        self.residuals[model.method] = self.y - self.trained_models[model.method]
         self._compute_summary()
 
 
