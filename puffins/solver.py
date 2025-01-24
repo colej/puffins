@@ -35,8 +35,6 @@ def solve_wls(X, y, W=None):
 
     n, p = X.shape
 
-    # W = kwargs.get('W', None)
-
     if W is None:
         W = np.ones(n)
     
@@ -79,9 +77,6 @@ def solve_generalRidge(X, y, alpha=0., W=None):
     '''
 
     n, p = X.shape
-
-    # alpha = kwargs.get('alpha', 1)
-    # W = kwargs.get('W', None)
 
     if W is None:
         W = np.ones(n)
@@ -126,10 +121,6 @@ def solve_fw(X, y, W=None, L=None):
     '''
 
     n, p = X.shape
-
-    # W = kwargs.get('W', None)
-    # L = kwargs.get('L', None)
-
 
     if W is None:
         weights = np.ones(n)

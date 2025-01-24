@@ -116,7 +116,7 @@ class LinearModel:
             self.X_train, weighting_input = construct_design_matrix(x=self.time_series.x, basis_functions=self.basis_functions, feature_embedding=self.feature_embedding, **self.X_kwargs)
             if self.feature_weighting_function:
                 self.feature_weights = self.feature_weighting_function(weighting_input, self.feature_weighting_width)
-                self.solver_kwargs['L'] = self.feature_weights
+                self.solver_kwargs['L'] = 1./(self.feature_weights)**2
             else:
                 self.feature_weights = None
 
