@@ -1,7 +1,5 @@
-import optuna
 import inspect
 import numpy as np
-from sklearn.model_selection import KFold
 
 
 from .solver import solve, get_solvers
@@ -9,7 +7,10 @@ from .basis_functions import basis_constant, basis_linear, basis_quadratic
 from .utils import construct_design_matrix
 
 class DataSet:
-    def __init__(self, predictors, targets, epsilons=None):
+    def __init__(self, predictors: np.ndarray , 
+                 targets: np.ndarray , 
+                 target_uncertainties: np.ndarray | None = None
+                ):
         """
         Initialize the data object
         Parameters:
@@ -22,7 +23,7 @@ class DataSet:
         """
         self.predictors = predictors
         self.targets = targets
-        self.epsilons = epsilons
+        self.target_uncertainties = target_uncertainties
         self.regressors = {}
         self.trained_models = {}
         self.residuals = {}
@@ -44,7 +45,7 @@ class DataSet:
         return f"TimeSeries with properties:\n{summary_str}"
 
 
-    def add_model(self, model):
+    def add_model(self, model: any):
         self.regressors[model.method] = model
         self.trained_models[model.method] = model.predict(self.predictors)[1]
         self.residuals[model.method] = self.targets - self.trained_models[model.method]
@@ -53,9 +54,12 @@ class DataSet:
 
 class TimeSeries(DataSet):
 
-    def __init__(self, predictors: np.array, targets: np.array, epsilons=None, 
+    def __init__(self, 
+                 predictors: np.array, 
+                 targets: np.array, 
+                 target_uncertainties: np.ndarray | None = None, 
                  period: float = 1., t0: float = 0.):
-        super().__init__(predictors, targets, epsilons)
+        super().__init__(predictors=predictors, targets=targets, target_uncertainties=target_uncertainties)
         self.period = period
         self.t0 = t0
         self.ph = None
@@ -84,8 +88,13 @@ class TimeSeries(DataSet):
 
 
 class LinearModel:
-    def __init__(self, method: str = 'wls', basis_functions=None, feature_embedding=None, 
-                 feature_weighting_function=None, feature_weighting_width=None, **kwargs):
+    def __init__(self, 
+                 method: str = 'wls', 
+                 basis_functions: list or None = None, 
+                 feature_embedding: str or None = None, 
+                 feature_weighting_function: callable or None = None, 
+                 feature_weighting_width: float or None = None, 
+                 **kwargs):
         """
         Initialize the model object.
 
@@ -191,7 +200,12 @@ class LinearModel:
 
 
 
-    def predict(self, predcitors, targets=None):
+    def predict(
+                self, 
+                predcitors: np.ndarray, 
+                targets: np.ndarray | None = None,
+                coefficients: np.ndarray | None = None
+                ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None ]:
         """
         Predict values at new data points.
 
@@ -210,68 +224,19 @@ class LinearModel:
         X_predict, _ = construct_design_matrix(x=predcitors, basis_functions=self.basis_functions, 
                                                feature_embedding=self.feature_embedding, **self.X_kwargs)
 
-        if targets is not None:
-            residuals = targets - X_predict @ self.coefficients
-            return X_predict, X_predict @ self.coefficients, residuals
+        if coefficients is None:
+            coefficients = self.coefficients
 
-        return X_predict, X_predict @ self.coefficients
+        fit = X_predict @ coefficients
+
+        if targets is None:
+            residuals = None
+        else:
+            residuals = targets - fit
+
+        return X_predict, fit, residuals
 
 
-
-
-
-# class Tuner:
-#     def __init__(self, DataSet: Any, LinearModel: Any, hyperpars: Any = None, 
-#                  n_folds:int = 5, n_trials: int = 50, direction: str = 'minimize',
-#                  random_state: int = 42
-#                  ):
-#         self.DataSet = DataSet
-#         self.Model = LinearModel
-#         self.hyperpars = hyperpars
-#         self.n_folds = n_folds
-#         self.n_trials = n_trials
-#         self.best_hyperpars = None
-#         self.random_state = random_state
-#         self.direction = direction
-
-#     def run_tune(self,
-#         predictors: np.array,
-#         targets: np.array,
-#         n_splits: int = 5,
-#         random_state: int = 42,
-#         n_trials: int = 50,
-#         direction: str = "maximize"
-#         ) -> None:
-#         """
-#         Run hyperparameter tuning on the given model and dataset.
-
-#         This method calls out to the helper function in `tuner_functions.py`.
-
-#         Parameters
-#         ----------
-#         model : Any
-#             The model (e.g., sklearn estimator) to be tuned.
-#         X : Any
-#             Features of the training set.
-#         y : Any
-#             Targets/labels of the training set.
-#         n_splits : int, default=5
-#             Number of folds in K-Fold cross-validation.
-#         random_state : int, default=42
-#             Random state for reproducible folds.
-#         n_trials : int, default=50
-#             Number of trials for the Optuna study.
-#         direction : str, default="maximize"
-#             Direction of optimization ("maximize" or "minimize").
-#         """
-#         self.best_params, self.best_score = tune_with_optuna(
-#             model=model,
-#             hyperparams=self.hyperparams,
-#             n_splits=n_splits,
-#             random_state=random_state,
-#             n_trials=n_trials,
-#             direction=direction
-#         )
 
 
 # class TimeseriesTuner(Tuner):
@@ -313,40 +278,3 @@ class LinearModel:
     #         errors.append(error)
 
     #     return errors
-
-    # def bootstrap_uncertainties(self, n_bootstrap=1000):
-    #     """
-    #     Estimate uncertainties on coefficients using bootstrapping.
-
-    #     Parameters:
-    #     - n_bootstrap: int, optional
-    #         Number of bootstrap resamples (default: 1000).
-
-    #     Returns:
-    #     - uncertainties: np.ndarray
-    #         Bootstrap standard deviations for coefficients.
-    #     """
-    #     coefficients_samples = []
-
-    #     for _ in range(n_bootstrap):
-    #         indices = np.random.choice(len(self.time_series.times), len(self.time_series.times), replace=True)
-    #         boot_times = self.time_series.times[indices]
-    #         boot_obs = self.time_series.observations[indices]
-    #         boot_unc = self.time_series.uncertainties[indices]
-
-    #         boot_series = TimeSeries(boot_times, boot_obs, boot_unc)
-    #         boot_model = Model(boot_series, self.basis_functions)
-    #         boot_model.construct_design_matrix()
-    #         boot_model.fit()
-    #         coefficients_samples.append(boot_model.coefficients)
-
-    #     return np.std(coefficients_samples, axis=0)
-
-
-
-# Example Usage
-# time_series = TimeSeries(times=[0, 1, 2, 3], observations=[1, 2, 1.5, 3], uncertainties=[0.1, 0.2, 0.1, 0.3])
-# model = Model(time_series, basis_functions=[basis_linear, basis_quadratic, basis_sine])
-# model.construct_design_matrix()
-# model.fit()
-# predictions = model.predict([0.5, 1.5, 2.5])
