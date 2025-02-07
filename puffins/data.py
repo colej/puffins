@@ -202,7 +202,7 @@ class LinearModel:
 
     def predict(
                 self, 
-                predcitors: np.ndarray, 
+                predictors: np.ndarray | None = None, 
                 targets: np.ndarray | None = None,
                 coefficients: np.ndarray | None = None
                 ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None ]:
@@ -217,12 +217,12 @@ class LinearModel:
             Array of observed values to compute residuals.
 
         Returns:
-        - predictions: np.ndarray
+        - model: np.ndarray
             Predicted values.
         """
 
-        X_predict, _ = construct_design_matrix(x=predcitors, basis_functions=self.basis_functions, 
-                                               feature_embedding=self.feature_embedding, **self.X_kwargs)
+        X_predict, _ = construct_design_matrix(x=predictors, basis_functions=self.basis_functions, 
+                                            feature_embedding=self.feature_embedding, **self.X_kwargs)
 
         if coefficients is None:
             coefficients = self.coefficients
