@@ -3,27 +3,40 @@ import numpy as np
 from .basis_functions import *
 
 
-def construct_design_matrix(x, basis_functions=None, feature_embedding=None, 
-                            period=None, n_harmonics=1, polynomial_degree=None, **kwargs):
+def construct_design_matrix(
+                            x: np.ndarray, 
+                            basis_functions: list | None = None, 
+                            feature_embedding: str | None = None, 
+                            period: float | None = None, 
+                            n_harmonics: int | None = None, 
+                            polynomial_degree: int | None = None, 
+                            **kwargs: dict
+                            ) -> tuple[np.ndarray, np.ndarray]:
     """
     Generate a design matrix based on provided basis functions and/or feature embeddings.
 
     Parameters
     ----------
-    x : np.ndarray
+    - x : np.ndarray
         The times of the observations
-    basis_functions : list of callables, optional
+    - basis_functions : list of callables, optional
         List of functions to transform time points into features
-    feature_embedding : str, optional
+    - feature_embedding : str, optional
         Type of feature embedding to use (e.g., "fourier")
-    kwargs : dict
+    - period : float, optional
+        Period of the time series
+    - n_harmonics : int, optional
+        Number of harmonics to use in the feature embedding
+    - polynomial_degree : int, optional
+        Degree of the polynomial basis function
+    - kwargs : dict
         Additional parameters for the feature embedding (e.g., period, n_harmonics)
 
     Returns
     -------
-    design_matrix : np.ndarray
+    - design_matrix : np.ndarray
         The design matrix
-    feature_weights : dict
+    - feature_weights : dict
         Additional outputs specific to the feature embedding, if applicable
     """
 
@@ -79,8 +92,35 @@ def construct_design_matrix(x, basis_functions=None, feature_embedding=None,
 
 
 
-def sort_on_x(x,y,yerr):
-    zipp = list(zip(x,y,yerr))
+def sort_on_x(
+              x: np.ndarray,
+              y: np.ndarray,
+              z: np.ndarray
+              ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Sort the input arrays based on the x values.
+
+    Parameters
+    ----------
+    - x : np.ndarray
+        The x values
+    - y : np.ndarray
+        The y values
+    - z : np.ndarray
+        The z values
+    
+    
+    Returns
+    -------
+    - x : np.ndarray
+        The sorted x values
+    - y : np.ndarray
+        The sorted y values
+    - z : np.ndarray
+        The sorted z values
+    """
+
+    zipp = list(zip(x,y,z))
     zipp.sort(key=lambda x:x[0])
-    x,y, yerr = list(zip(*zipp))
-    return x, y, yerr
+    x,y, z = list(zip(*zipp))
+    return x, y, z

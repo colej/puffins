@@ -2,8 +2,7 @@ import inspect
 import numpy as np
 
 
-from .solver import solve, get_solvers
-from .basis_functions import basis_constant, basis_linear, basis_quadratic
+from .solver import get_solvers
 from .utils import construct_design_matrix
 
 class DataSet:
@@ -30,7 +29,7 @@ class DataSet:
         self.summary = None
         self._compute_summary()
 
-    def _compute_summary(self):
+    def _compute_summary(self) -> None:
         """Compute summary statistics for the time series."""
         summary = {
             "Number of data points": len(self.predictors),
@@ -39,13 +38,15 @@ class DataSet:
         self.summary = summary
         
 
-    def __repr__(self):
+    def __repr__(self)  -> str:
         """String representation for debugging."""
         summary_str = "\n".join([f"{stat}: {val}" for stat, val in self.summary.items()])
         return f"TimeSeries with properties:\n{summary_str}"
 
 
-    def add_model(self, model: any):
+    def add_model(self, 
+                  model: any
+                  ) -> None:
         self.regressors[model.method] = model
         self.trained_models[model.method] = model.predict(self.predictors)[1]
         self.residuals[model.method] = self.targets - self.trained_models[model.method]
@@ -65,11 +66,11 @@ class TimeSeries(DataSet):
         self.ph = None
 
 
-    def compute_phase(self):
+    def compute_phase(self) -> None:
         self.ph = ((self.predictors - self.t0) / self.period) % 1
 
 
-    def _compute_summary(self):
+    def _compute_summary(self) -> None:
         """Compute summary statistics for the time series."""
         summary = {
             "Time base of dataset": self.predictors.max() - self.predictors.min(),
@@ -80,7 +81,7 @@ class TimeSeries(DataSet):
         self.summary = summary
         
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """String representation for debugging."""
         summary_str = "\n".join([f"{stat}: {val}" for stat, val in self.summary.items()])
         return f"TimeSeries with properties:\n{summary_str}"
@@ -134,7 +135,7 @@ class LinearModel:
         self._compute_summary()
 
 
-    def _compute_summary(self):
+    def _compute_summary(self) -> None:
         """Compute summary statistics for the time series."""
         summary = {
             "Basis functions": [f"{inspect.getsource(bf)}" for bf in self.basis_functions],
@@ -151,7 +152,10 @@ class LinearModel:
         return f"Linear Model with properties: \n {summary_str}"
 
 
-    def set_X_kwargs(self, update=False, **kwargs):
+    def set_X_kwargs(self, 
+                     update: bool = False,
+                     **kwargs
+                     ) -> None:
         X_list = list(inspect.signature(construct_design_matrix).parameters)
         if update:
             for key in X_list:
@@ -162,7 +166,10 @@ class LinearModel:
 
 
 
-    def set_solver_kwargs(self, update=False, **kwargs):
+    def set_solver_kwargs(self,
+                          update: bool = False, 
+                          **kwargs
+                          ) -> None:
         solver_list = list(inspect.signature(self.solver).parameters)
         self.solver_kwargs = {key: kwargs[key] for key in solver_list if key in kwargs}
         if update:
@@ -173,7 +180,9 @@ class LinearModel:
                 self.solver_kwargs = {key: kwargs[key] for key in solver_list if key in kwargs}
 
 
-    def set_X_train(self, predictors):
+    def set_X_train(self, 
+                    predictors: np.ndarray
+                    ) -> None:
             self.X_train, self.feature_weight_inputs = construct_design_matrix(x=predictors, basis_functions=self.basis_functions, feature_embedding=self.feature_embedding, **self.X_kwargs)
             if self.feature_weighting_function:
                 self.feature_weights = self.feature_weighting_function(self.feature_weight_inputs, self.feature_weighting_width)
@@ -182,7 +191,9 @@ class LinearModel:
                 self.feature_weights = None
 
 
-    def train(self, targets):
+    def train(self, 
+              targets: np.ndarray
+              ) -> None:
         """
         Trains the model on the data.
 
@@ -235,46 +246,3 @@ class LinearModel:
             residuals = targets - fit
 
         return X_predict, fit, residuals
-
-
-
-
-# class TimeseriesTuner(Tuner):
-#     def __init__(self, DataSet, LinearModel,  n_folds=5, n_trials=50, prediction_horizon=1.):
-#         super().__init__(DataSet, LinearModel,  n_folds=n_folds, n_trials=n_trials)
-#         self.prediction_horizon = prediction_horizon
-
-
-    # def cross_validate(self, n_splits=5):
-    #     """
-    #     Perform K-Fold cross-validation.
-
-    #     Parameters:
-    #     - n_splits: int, optional
-    #         Number of splits for K-Fold (default: 5).
-
-    #     Returns:
-    #     - errors: list
-    #         List of validation errors for each fold.
-    #     """
-    #     kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
-    #     errors = []
-
-    #     for train_idx, val_idx in kf.split(self.time_series.times):
-    #         train_times = self.time_series.times[train_idx]
-    #         train_obs = self.time_series.observations[train_idx]
-    #         train_unc = self.time_series.uncertainties[train_idx]
-
-    #         val_times = self.time_series.times[val_idx]
-    #         val_obs = self.time_series.observations[val_idx]
-
-    #         temp_series = TimeSeries(train_times, train_obs, train_unc)
-    #         temp_model = Model(temp_series, self.basis_functions)
-    #         temp_model.construct_design_matrix()
-    #         temp_model.fit()
-
-    #         predictions = temp_model.predict(val_times)
-    #         error = np.mean((predictions - val_obs)**2)
-    #         errors.append(error)
-
-    #     return errors

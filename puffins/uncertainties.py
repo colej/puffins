@@ -3,7 +3,12 @@ from tqdm import tqdm
 from scipy import stats
 
 class UncertaintyEstimator:
-    def __init__(self, DataSet: any, Model: any, **kwargs):
+    def __init__( 
+                  self, 
+                  DataSet: any, 
+                  Model: any, 
+                  **kwargs
+                 ) -> None:
         self.DataSet = DataSet
         self.Model = Model
         self.kwargs = kwargs
@@ -15,11 +20,11 @@ class UncertaintyEstimator:
 
 
     def run_loocv_sampling( 
-                   self, 
-                   predictors: np.ndarray | None = None, 
-                   targets: np.ndarray | None = None, 
-                   **kwargs
-                  ) -> dict:
+                            self, 
+                            predictors: np.ndarray | None = None, 
+                            targets: np.ndarray | None = None, 
+                            **kwargs
+                            ) -> dict:
 
         if predictors is None:
             predictors = self.DataSet.predictors

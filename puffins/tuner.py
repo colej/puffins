@@ -14,8 +14,11 @@ from sklearn.model_selection import KFold, cross_val_score
 
 
 class Tuner:
-    def __init__(self, LinearModel: any, hyperpars: any = None, 
-                 n_trials: int = 50, direction: str = 'minimize',
+    def __init__(self, 
+                 LinearModel: any, 
+                 hyperpars: any = None, 
+                 n_trials: int = 50, 
+                 direction: str = 'minimize',
                 ) -> None:
         self.model = LinearModel
         self.hyperpars = hyperpars
@@ -25,9 +28,9 @@ class Tuner:
         self.best_score = None
 
     def run_tune(self,
-        predictors: np.ndarray,
-        targets: np.ndarray,
-        ) -> None:
+                 predictors: np.ndarray,
+                 targets: np.ndarray,
+                 ) -> None:
         """
         Run hyperparameter tuning on the given model and dataset.
 
@@ -35,9 +38,9 @@ class Tuner:
 
         Parameters
         ----------
-        predictors : np.ndarray
+        - predictors : np.ndarray
             Features of the training set.
-        targets : np.ndarray
+        - targets : np.ndarray
             Targets/labels of the training set.
         """
         self.best_hyperpars, self.best_score = simple_tune(
@@ -60,44 +63,72 @@ class Tuner:
 
 
 def simple_tune( model: Any,
-    predictors: np.array,
-    targets: np.array,
-    hyperparams: Dict[str, Any],
-    n_trials: int,
-    direction: str,
-    **kwargs
-) -> Tuple[Dict[str, Any], float]:
+                 predictors: np.array,
+                 targets: np.array,
+                 hyperparams: Dict[str, Any],
+                 n_trials: int,
+                 direction: str,
+                 **kwargs
+                 ) -> Tuple[Dict[str, Any], float]:
     """
     Tune a model's hyperparameters using Optuna and K-Fold cross-validation.
 
     Parameters
     ----------
-    model : Any
+    - model : Any
         The model (e.g., sklearn estimator) to be tuned.
-    predcitors : np.ndarray
+    - predcitors : np.ndarray
         Features of the training set.
-    targets : Any
+    - targets : Any
         Targets/labels of the training set.
-    hyperparams : dict
+    - hyperparams : dict
         Dictionary specifying hyperparameter distributions or discrete values.
         Example of a log-uniform distribution:
             { "feature_width": (1e-5, 1.0, "log") }
         Example of a uniform distribution:
             { "period": (0.0, 1.0, "uniform") }
-    n_trials : int
+    - n_trials : int
         Number of trials for the Optuna study.
-    direction : str
+    - direction : str
         "maximize" or "minimize" the objective metric.
 
     Returns
     -------
-    best_params : dict
+    - best_params : dict
         The best hyperparameters found by Optuna.
-    best_score : float
+    - best_score : float
         The best score from tuning run.
     """
 
-    def objective(trial: optuna.Trial, model: any, predictors: np.ndarray, targets: np.ndarray, **kwargs) -> float:
+    def objective(
+                  trial: optuna.Trial, 
+                  model: any, 
+                  predictors: np.ndarray, 
+                  targets: np.ndarray, 
+                  **kwargs
+                  ) -> float:
+
+        """
+        Parameters
+        ----------
+
+        - trial : optuna.Trial
+            The Optuna trial object.
+        - model : any
+            The model object.
+        - predictors : np.ndarray
+            Features of the training set.
+        - targets : np.ndarray
+            Targets/labels of the training set.
+        - **kwargs
+            Additional arguments for the model.
+
+        Returns
+        -------
+        - float
+            The mean squared error of the model.
+        """
+
         # Construct the parameter set for each trial
         trial_params = {}
         for param_name, dist in hyperparams.items():
@@ -135,45 +166,78 @@ def simple_tune( model: Any,
 
 
 def KFolds_tune( model: Any,
-    predictors: np.array,
-    targets: np.array,
-    hyperparams: Dict[str, Any],
-    n_trials: int,
-    direction: str,
-    n_folds: int = 5,
-    **kwargs
-) -> Tuple[Dict[str, Any], float]:
+                 predictors: np.array,
+                 targets: np.array,
+                 hyperparams: Dict[str, Any],
+                 n_trials: int,
+                 direction: str,
+                 n_folds: int = 5,
+                 **kwargs
+                ) -> Tuple[Dict[str, Any], float]:
     """
     Tune a model's hyperparameters using Optuna and K-Fold cross-validation.
 
     Parameters
     ----------
-    model : Any
+    - model : Any
         The model (e.g., sklearn estimator) to be tuned.
-    predcitors : np.ndarray
+    - predcitors : np.ndarray
         Features of the training set.
-    targets : Any
+    - targets : Any
         Targets/labels of the training set.
-    hyperparams : dict
+    - hyperparams : dict
         Dictionary specifying hyperparameter distributions or discrete values.
         Example of a log-uniform distribution:
             { "feature_width": (1e-5, 1.0, "log") }
         Example of a uniform distribution:
             { "period": (0.0, 1.0, "uniform") }
-    n_trials : int
+    - n_trials : int
         Number of trials for the Optuna study.
-    direction : str
+    - direction : str
         "maximize" or "minimize" the objective metric.
 
     Returns
     -------
-    best_params : dict
+    - best_params : dict
         The best hyperparameters found by Optuna.
-    best_score : float
+    - best_score : float
         The best score from tuning run.
     """
 
-    def objective(trial: optuna.Trial, model: any, predictors: np.ndarray, targets: np.ndarray, n_splits=5, n_seed=42, **kwargs) -> float:
+    def objective(
+                   trial: optuna.Trial, 
+                   model: any, 
+                   predictors: np.ndarray, 
+                   targets: np.ndarray, 
+                   n_splits=5, 
+                   n_seed=42, 
+                   **kwargs
+                  ) -> float:
+
+        """
+        Parameters
+        ----------
+        - trial : optuna.Trial
+            The Optuna trial object.
+        - model : any
+            The model object.
+        - predictors : np.ndarray
+            Features of the training set.
+        - targets : np.ndarray
+            Targets/labels of the training set.
+        - n_splits : int
+            Number of K-folds.
+        - n_seed : int
+            Random seed for reproducibility.
+        - **kwargs
+            Additional arguments for the model.
+
+        Returns
+        -------
+        - float
+            The mean squared error of the model.
+        """
+
         # Construct the parameter set for each trial
         trial_params = {}
         for param_name, dist in hyperparams.items():

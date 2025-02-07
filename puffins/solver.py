@@ -5,22 +5,30 @@ np.random.seed(1234567) # The General Insurance phone number to enforce reproduc
 RCOND = 1e-14 # condition number below which `np.linalg.lstsq()` zeros out eigen/singular values
 
 
-def solve_wls(X, y, W=None):
+def solve_wls(
+               X: np.ndarray, 
+               y: np.ndarray, 
+               W: np.ndarray | None = None
+              ) -> np.ndarray :
 
     '''
     Weighted least squares solver.
     -------------------------------
 
     Parameters:
-    X: Design matrix
+    - X: np.ndarray
+        Design matrix
 
-    y: Target values
+    - y: np.ndarray
+        Target values
 
-    W: Weights for the design matrix
-       Assumes matrix with diagonal elements as 1/inverse variance on Y
+    - W: np.ndarray 
+        Weights for the design matrix
+        Assumes matrix with diagonal elements as 1/inverse variance on Y
 
     Returns:
-    beta_hat: Solved coefficients (betas)
+    - beta_hat: np.ndarray
+        Solved coefficients (betas)
 
     NOTES:
     - If W is not provided, it assumes OLS
@@ -49,21 +57,30 @@ def solve_wls(X, y, W=None):
 
 
 
-def solve_generalRidge(X, y, alpha=0., W=None):
+def solve_generalRidge(
+                        X: np.ndarray, 
+                        y: np.ndarray, 
+                        alpha: float = 0., 
+                        W: np.ndarray | None = None
+                       ) -> np.ndarray :
     '''
     Generalized least squares solver.
     -------------------------------
 
     Parameters:
-    X: Design matrix
+    - X: np.ndarray
+        Design matrix
 
-    y: Target values
+    - y: np.ndarray
+        Target values
 
-    W: Weights for the design matrix
-       Assumes matrix with diagonal elements as 1/inverse variance on Y
+    - W: np.ndarray
+        Weights for the design matrix
+        Assumes matrix with diagonal elements as 1/inverse variance on Y
 
     Returns:
-    beta_hat: Solved coefficients (betas)
+    - beta_hat: np.ndarray 
+        Solved coefficients (betas)
 
     NOTES:
     - If W is not provided, it assumes OLS
@@ -88,27 +105,32 @@ def solve_generalRidge(X, y, alpha=0., W=None):
     return np.linalg.lstsq(XTWX, XTW @ y, rcond=RCOND)[0]
 
 
-def solve_fw(X, y, W=None, L=None):
+def solve_fw(
+             X: np.ndarray, 
+             y: np.ndarray, 
+             W: np.ndarray | None = None, 
+             L: np.ndarray | None = None
+             ) -> np.ndarray :
 
     '''
     Feature weighted least squares solver.
     -------------------------------
     Parameters:
-    X: Design matrix
+    - X: Design matrix
         np.ndarray of shape (n, p)
     
-    y: Target values
+    - y: Target values
         np.ndarray of shape (n,)
     
-    L: Feature weights
+    - L: Feature weights
         np.ndarray of shape (p,)
     
-    W: Weights for the targets
+    - W: Weights for the targets
         np.ndarray of shape (n,)
         Assumes matrix with diagonal elements as 1/inverse variance on Y
     
     Returns:
-    beta_hat: Solved coefficients (betas)
+    - beta_hat: Solved coefficients (betas)
         np.ndarray of shape (p,)
 
     NOTES:
@@ -155,7 +177,20 @@ def solve_fw(X, y, W=None, L=None):
         return LinvXT @ np.linalg.lstsq(XLinvXT, y, rcond=RCOND)[0]
 
 
-def get_solvers(method):
+def get_solvers( method: str ) -> callable:
+
+    """
+    Wrapper to get the solver function based on the method.
+
+    Parameters:
+    - method: str 
+        Solver method. Options are 'ols', 'ridge', 'fwols'.
+
+    Returns:
+    - callable: 
+        Solver function.
+
+        """
     methods = {
         "wls": solve_wls,
         "ridge": solve_generalRidge,
@@ -165,15 +200,25 @@ def get_solvers(method):
         raise ValueError(f"Unknown method '{method}'. Supported methods: {list(methods.keys())}")
     return methods[method]
 
-def solve(X, y, method="wls", **kwargs):
+
+def solve(
+          X: np.ndarray, 
+          y: np.ndarray, 
+          method: str = "wls", 
+          **kwargs
+          ) -> np.ndarray:
     """
     General solver wrapper.
 
     Parameters:
-    - X (np.ndarray): Design matrix.
-    - y (np.ndarray): Target values.
-    - method (str): Solver method. Options are 'ols', 'ridge', 'fwols'.
-    - **kwargs: Additional arguments for the specific solver.
+    - X: np.ndarray)
+        Design matrix.
+    - y: np.ndarray
+        Target values.
+    - method: str 
+        Solver method. Options are 'ols', 'ridge', 'fwols'.
+    - **kwargs 
+        Additional arguments for the specific solver.
 
     Returns:
     - np.ndarray: Solved coefficients (betas).
@@ -192,83 +237,3 @@ def solve(X, y, method="wls", **kwargs):
     solver_kwargs = {key: kwargs[key] for key in kwargs if key in signature}
 
     return solver(X, y, **solver_kwargs)
-
-
-
-# def solve_ridgeRegression(x, y, period, K, alpha, weighted=False, weights=None):
-#     X,_ = design_matrix(x, period, K)
-# #     wI = np.eye(X.shape[1])
-# #     wI[0,0] = 0
-# #     betas = np.linalg.solve( alpha*wI + X.T@X, X.T @ y)
-
-#     if weighted:
-#         Cinv = np.linalg.inv(np.diag(weights))
-#         A = X.T@Cinv@X
-#         B = X.T@Cinv@y
-#     else:
-#         A = X.T@X
-#         B = X.T@y
-        
-#     idd = np.diag_indices_from(A)
-#     A[idd] += alpha
-    
-#     betas = np.linalg.solve(A, B)
-#     return betas
-
-
-# def solve_approxGP(x, y, period, K, alpha, width=None, weighted=False, weights=None):
-
-#     if width is None:
-#         width = 0.1*period / (2.*np.pi)
-#     else:
-#         width /= (2. * np.pi)
-
-    
-#     ## Assumes the approximation of a periodic version of the Matern 3/2 kernal
-#     X,diag_omegas = design_matrix(x, period, K)
-    
-#     # Implement eq. 23 from https://arxiv.org/pdf/2101.07256
-#     # In this case, we're going to use the same X for our predictions
-#     # however, we could propose a new X* where we want to predict
-#     # the regression at times t*
-#     if weighted:
-#         Cinv = np.linalg.inv(np.diag(weights))
-#         A = X.T@Cinv@X
-#         B = X.T@Cinv@y
-#     else:
-#         A = X.T@X
-#         B = X.T@y
-    
-#     idd = np.diag_indices_from(A)
-#     A[idd] += alpha * ( (width**2) * (diag_omegas**2) + 1 )
-#     betas = np.linalg.solve( A, B)
-#     return betas
-
-# def solve_simple(x, y, period, K, weighted=False, weights=None):
-
-#     X,_ = design_matrix(x, period, K)
-#     betas = np.linalg.solve(X.T @ X, X.T @ y)
-#     # amps, resids, rank, S = np.linalg.lstsq(X, flux, rcond=None)
-
-#     return betas
-
-
-# def predict_simple(x, y, period, K):
-#     X,_ = design_matrix(x, period, K)
-#     betas = solve_simple(x, y, period, K)
-#     reconstructed_y = X @ betas
-#     return X, betas, reconstructed_y
-
-
-# def predict_ridge(x, y, period, K, alpha=1):
-#     X,_ = design_matrix(x, period, K)
-#     betas = solve_ridgeRegression(x, y, period, K, alpha)
-#     reconstructed_y = X @ betas
-#     return X, betas, reconstructed_y
-
-
-# def predict_approxGP(x, y, period, K, alpha=1, width=None):
-#     X,_ = design_matrix(x, period, K)
-#     betas = solve_ridgeRegression(x, y, period, K, alpha, width)
-#     reconstructed_y = X @ betas
-#     return X, betas, reconstructed_y
