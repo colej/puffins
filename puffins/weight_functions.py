@@ -62,7 +62,7 @@ def exponential_squared(
 
 def matern32(
              omegas: np.ndarray, 
-             width: np.ndarray
+             width: float
             ) -> np.ndarray :
     """
     Matern 3/2 kernel.
@@ -91,7 +91,7 @@ def matern32(
 
 def matern52(
              omegas: np.ndarray, 
-             width: np.ndarray
+             width: float
             ) -> np.ndarray :
     """
     Matern 5/2 kernel.
