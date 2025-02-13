@@ -18,10 +18,10 @@ By providing a uniform basis on which to flexibly model different types of perio
 Developing this package was motivated by modelling the signatures of eclipsing binary stars in astronomical photometric time series data. While there are highly sophisticated, physically motivated, parameteric modelling codes built specifically for modelling eclipsing binary stars to an extremely high precision, they are often high dimensional models, with strong parameter degeneracies, and are imensely computationally costly. While some science cases demand extremely high precision parameter estimates, other workflows such as classification and residual modelling are hampered by the high computation cost of modelling the high amplitude eclipsing binary signal. Thus, we have a clear motive to build __effective__ models to model and remove the eclipse signal from astronomical time series data.
 
 
-## Mathematical overview
+<!-- ## Mathematical overview
 We are using a linear regression to model our signals of interest for a time series of N observations $y_i$; $i\in (0...N-1)$ with $e_i$ associated uncertainties, taken at $t_i$ times. The typical formulation of the regression problem to y is given by:  __Y__ = __X__ __&beta;__, where __X__ is our N x p design matrix, with N predictors and p features, __&beta;__ is the p x 1 coefficient matrix, and __Y__ is the Nx1 target matrix.
 
-Because we know that we're modelling strictly periodic signals, we will embed our features in a Fourier space - thus, our design matrix is no longer N x p, but N x 2K + 1, where K is the number of harmonics used in our harmonic series to model the signal.
+Because we know that we're modelling strictly periodic signals, we will embed our features in a Fourier space - thus, our design maStrix is no longer N x p, but N x 2K + 1, where K is the number of harmonics used in our harmonic series to model the signal.
 
 Given the disparity of types of astronomical data, we will be dealing with regimes where __i)__ have far more data points than features (N >> p), and __ii)__ in regimes where we have fewer data points than peatures (N < p). As such, we have two forms of the OLS to solve. In the two cases, we use different formulations for the optimal regression:
  - $\mathbf{\hat{\beta}} = \left( \mathbf{X}^T \mathbf{X} \right)^{-1} \mathbf{X}^T \mathbf{Y}$
@@ -32,9 +32,7 @@ In some situations, we will want to include weights for each data point in the f
  - $\mathbf{\hat{\beta}} = \left( \mathbf{X}^T \mathbf{C}^{-1} \mathbf{X} \right)^{-1} \mathbf{X}^T \mathbf{C}^{-1} \mathbf{Y}$
  - $\mathbf{\hat{\beta}} = \left( \mathbf{X}^T \mathbf{C}^{-1} \mathbf{X} \right)^{+} \mathbf{X}^T \mathbf{C}^{-1} \mathbf{Y}$
 
- Where $^+$ denotes the pseudo inverse.
-
-## Latent space modelling
+ Where $^+$ denotes the pseudo inverse. -->
 
 
 ## Why did we call it puffins?
